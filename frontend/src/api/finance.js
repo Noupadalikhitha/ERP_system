@@ -14,4 +14,9 @@ export const financeAPI = {
   getDashboard: (days) => api.get('/finance/dashboard', { params: { days } }),
   getMonthEndReport: (year, month) => api.get('/finance/reports/month-end', { params: { year, month } }),
   getProfitLossReport: (params) => api.get('/finance/reports/profit-loss', { params }),
+  
+  // AI Finance Endpoints
+  getForecasts: () => api.get('/finance/ai/forecasts'),
+  getAbnormalExpenses: () => api.get('/finance/ai/abnormal-expenses'),
+  generateReport: () => api.post('/finance/ai/generate-report'),
 }

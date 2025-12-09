@@ -1,3 +1,4 @@
+import AIFinance from './AIFinance';
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeAPI } from '../api/finance'
@@ -12,7 +13,7 @@ export default function Finance() {
   const [showRevenueModal, setShowRevenueModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [editingExpense, setEditingExpense] = useState(null)
-  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'expenses', 'revenue', 'reports'
+  const [activeTab, setActiveTab] = useState('overview') // 'overview', 'expenses', 'revenue', 'reports', 'ai'
   const [reportType, setReportType] = useState('month-end') // 'month-end', 'profit-loss'
   const queryClient = useQueryClient()
   const user = useSelector((state) => state.auth.user)
@@ -220,8 +221,20 @@ export default function Finance() {
           >
             Reports
           </button>
+          <button
+            onClick={() => setActiveTab('ai')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'ai'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            AI Insights
+          </button>
         </nav>
       </div>
+
+      {activeTab === 'ai' && <AIFinance />}
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (

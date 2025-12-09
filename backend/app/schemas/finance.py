@@ -2,6 +2,28 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date
 
+class ForecastDataPoint(BaseModel):
+    date: date
+    value: float
+    series: str # e.g., 'revenue', 'cash_flow'
+
+class FinancialForecast(BaseModel):
+    revenue_forecast: List[ForecastDataPoint]
+    cash_flow_forecast: List[ForecastDataPoint]
+
+class AbnormalExpense(BaseModel):
+    id: int
+    date: date
+    amount: float
+    description: Optional[str]
+    reason: str # e.g., 'Unusually high amount for category X'
+
+class FinancialReport(BaseModel):
+    file_name: str
+    file_url: str # URL to download the PDF report
+    generated_at: datetime
+
+
 class ExpenseCreate(BaseModel):
     category_id: Optional[int] = None
     expense_type: str = "other"  # bills, purchases, payroll, utilities, other

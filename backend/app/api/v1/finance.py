@@ -9,12 +9,89 @@ from app.models.sales import Order
 from app.schemas.finance import (
     ExpenseCreate, ExpenseResponse, ExpenseUpdate,
     RevenueCreate, RevenueResponse,
-    FinancialSummary, ProfitLossReport
+    FinancialSummary, ProfitLossReport,
+    FinancialForecast, AbnormalExpense, FinancialReport, ForecastDataPoint
 )
 from app.api.v1.dependencies import get_current_user, get_current_manager_or_admin
 from app.models.user import User
 
 router = APIRouter()
+ai_router = APIRouter()
+
+@ai_router.get("/forecasts", response_model=FinancialForecast)
+def get_financial_forecasts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_manager_or_admin)
+):
+    """
+    AI-powered revenue and cash flow forecasts.
+    """
+    # This is a mock implementation. In a real scenario, you'd use a time series model.
+    today = date.today()
+    revenue_forecast = [
+        ForecastDataPoint(date=today + timedelta(days=30 * i), value=10000 * (1 + 0.1 * i), series='revenue')
+        for i in range(1, 7)
+    ]
+    cash_flow_forecast = [
+        ForecastDataPoint(date=today + timedelta(days=30 * i), value=5000 * (1 + 0.08 * i), series='cash_flow')
+        for i in range(1, 7)
+    ]
+    
+    return FinancialForecast(
+        revenue_forecast=revenue_forecast,
+        cash_flow_forecast=cash_flow_forecast
+    )
+
+@ai_router.get("/abnormal-expenses", response_model=List[AbnormalExpense])
+def get_abnormal_expenses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_manager_or_admin)
+):
+    """
+    AI-identified abnormal or unusually high expenses.
+    """
+    # Mock implementation: Flag top 5 highest expenses in the last 30 days as 'abnormal'
+    thirty_days_ago = date.today() - timedelta(days=30)
+    
+    unusually_high_expenses = db.query(Expense)\
+        .filter(Expense.date >= thirty_days_ago)\
+        .order_by(desc(Expense.amount))\
+        .limit(5)\
+        .all()
+
+    return [
+        AbnormalExpense(
+            id=exp.id,
+            date=exp.date,
+            amount=exp.amount,
+            description=exp.description,
+            reason=f"Amount is significantly higher than average for '{exp.expense_type}' expenses."
+        ) for exp in unusually_high_expenses
+    ]
+
+@ai_router.post("/generate-report", response_model=FinancialReport)
+async def generate_financial_report(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_manager_or_admin)
+):
+    """
+    AI-generated audit-ready financial summaries and PDF reports.
+    This is a mock endpoint that simulates PDF generation.
+    """
+    # In a real implementation, you would:
+    # 1. Gather the required financial data.
+    # 2. Use a library like ReportLab or WeasyPrint to generate a PDF.
+    # 3. Upload the PDF to a storage service (like S3) and get a URL.
+    
+    # For now, return a mock response.
+    file_name = f"financial_summary_{datetime.now().strftime('%Y-%m-%d')}.pdf"
+    mock_file_url = f"/static/reports/{file_name}" # Placeholder URL
+    
+    return FinancialReport(
+        file_name=file_name,
+        file_url=mock_file_url,
+        generated_at=datetime.now()
+    )
 
 # Expenses
 @router.get("/expenses", response_model=List[ExpenseResponse])
