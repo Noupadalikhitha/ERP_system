@@ -106,7 +106,7 @@ export default function Admin() {
 
       {/* Tabs */}
       <div className="border-b mb-6">
-        <nav className="flex space-x-8">
+        <nav className="flex flex-wrap gap-4 sm:gap-6">
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${

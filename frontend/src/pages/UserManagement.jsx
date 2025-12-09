@@ -68,11 +68,11 @@ export default function UserManagement() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <h1 className="text-3xl font-bold">User Management</h1>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          className="inline-flex justify-center bg-blue-600 text-white px-4 py-2 rounded-lg items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           Create User

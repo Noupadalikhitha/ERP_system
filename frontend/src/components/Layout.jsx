@@ -1,4 +1,5 @@
-import { Outlet, Link, useLocation, Navigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/slices/authSlice'
 import { 
@@ -9,10 +10,13 @@ import {
   DollarSign, 
   Settings, 
   MessageSquare,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react'
 
 export default function Layout() {
+  const [isSidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const dispatch = useDispatch()
   const user = useSelector((state) => state.auth.user)
@@ -37,13 +41,62 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-lg flex flex-col h-screen sticky top-0">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold text-blue-600">ERP System</h1>
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden sticky top-0 z-30 bg-white border-b shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Toggle navigation"
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-md border text-gray-700 hover:bg-gray-50"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <p className="text-lg font-bold text-blue-600">ERP System</p>
+              <p className="text-xs text-gray-500">Role: {userRole}</p>
+            </div>
           </div>
-          <nav className="mt-6 flex-1 overflow-y-auto">
+          <button
+            onClick={handleLogout}
+            className="text-sm font-medium text-red-600 hover:text-red-700"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
+      <div className="flex min-h-screen">
+        {/* Mobile overlay */}
+        <div
+          className={`fixed inset-0 bg-black/50 transition-opacity lg:hidden ${
+            isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={() => setSidebarOpen(false)}
+        />
+
+        {/* Sidebar */}
+        <aside
+          className={`fixed inset-y-0 left-0 w-64 bg-white shadow-lg flex flex-col z-40 transform transition-transform lg:transform-none lg:static lg:shadow-none ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="p-6 border-b flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-blue-600">ERP System</h1>
+              <p className="text-xs text-gray-500 mt-1">Welcome back</p>
+            </div>
+            <button
+              type="button"
+              aria-label="Close navigation"
+              onClick={() => setSidebarOpen(false)}
+              className="p-2 rounded-md text-gray-600 hover:bg-gray-50 lg:hidden"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <nav className="mt-4 flex-1 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.path
@@ -51,12 +104,13 @@ export default function Layout() {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={() => setSidebarOpen(false)}
                   className={`flex items-center px-6 py-3 text-gray-700 hover:bg-blue-50 ${
-                    isActive ? 'bg-blue-50 border-r-4 border-blue-600' : ''
+                    isActive ? 'bg-blue-50 border-r-4 border-blue-600 font-semibold' : ''
                   }`}
                 >
                   <Icon className="w-5 h-5 mr-3" />
-                  {item.label}
+                  <span className="truncate">{item.label}</span>
                 </Link>
               )
             })}
@@ -79,7 +133,7 @@ export default function Layout() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto lg:ml-0">
           <Outlet />
         </main>
       </div>
