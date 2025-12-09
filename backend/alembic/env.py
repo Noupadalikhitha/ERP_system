@@ -16,7 +16,10 @@ from app.models import *  # Import all models
 config = context.config
 
 # Set database URL from settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+database_url = settings.DATABASE_URL
+if database_url.startswith('postgresql://'):
+    database_url = database_url.replace('%', '%%')
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
