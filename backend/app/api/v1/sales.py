@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from app.core.database import get_db
 from app.models.sales import Order, OrderItem, Customer, OrderStatus, Payment
+from app.models.finance import Revenue
 from app.models.inventory import Product, StockHistory
 from app.schemas.sales import (
     OrderCreate, OrderResponse, OrderStatusUpdate,
@@ -275,18 +276,72 @@ def create_payment(
             detail=f"Payment amount (${payment.amount}) exceeds remaining balance (${remaining:.2f})"
         )
     
+    transaction_id = payment.transaction_id or f"local_pay_{uuid.uuid4().hex[:12]}"
     db_payment = Payment(
         order_id=payment.order_id,
         amount=payment.amount,
         payment_method=payment.payment_method,
-        transaction_id=payment.transaction_id,
+        transaction_id=transaction_id,
         notes=payment.notes,
-        payment_status="completed"
+        payment_status="pending"
     )
     db.add(db_payment)
     db.commit()
     db.refresh(db_payment)
     return db_payment
+
+
+def _complete_local_payment(payment_id: int, db: Session) -> Payment:
+    """Complete a local payment and write its revenue entry exactly once."""
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payment.payment_status == "completed":
+        return payment
+    if payment.payment_status != "pending":
+        raise HTTPException(status_code=400, detail="Only pending payments can be completed")
+
+    order = db.query(Order).filter(Order.id == payment.order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    completed_total = db.query(func.sum(Payment.amount)).filter(
+        Payment.order_id == order.id,
+        Payment.payment_status == "completed"
+    ).scalar() or 0.0
+    if completed_total + payment.amount > order.total_amount:
+        raise HTTPException(status_code=400, detail="Payment exceeds the remaining order balance")
+
+    payment.payment_status = "completed"
+    payment.payment_date = datetime.now()
+    db.flush()
+
+    revenue_exists = db.query(Revenue).filter(
+        Revenue.source == "sales_payment",
+        Revenue.description == f"Payment {payment.transaction_id} for order {order.order_number}"
+    ).first()
+    if not revenue_exists:
+        db.add(Revenue(
+            source="sales_payment",
+            amount=payment.amount,
+            description=f"Payment {payment.transaction_id} for order {order.order_number}",
+            date=date.today()
+        ))
+
+    db.commit()
+    db.refresh(payment)
+    return payment
+
+
+@router.post("/payments/{payment_id}/mock-confirm", response_model=PaymentResponse)
+def confirm_local_payment(
+    payment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Simulate a successful local payment-provider callback for development."""
+    return _complete_local_payment(payment_id, db)
 
 @router.get("/orders/{order_id}/payments", response_model=List[PaymentResponse])
 def get_order_payments(

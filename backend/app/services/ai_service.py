@@ -9,9 +9,9 @@ from datetime import datetime, timedelta
 from app.core.database import Base, engine
 from app.core.config import settings
 
-# Groq Model configuration - Using currently supported models
-GROQ_MODEL_CHAT = "llama-3.3-70b-versatile"
-GROQ_MODEL_SQL = "llama-3.3-70b-versatile"
+# Groq Model configuration
+GROQ_MODEL_CHAT = "openai/gpt-oss-20b"
+GROQ_MODEL_SQL = "openai/gpt-oss-20b"
 
 # Lazy import and initialization of Groq
 _groq_client = None
@@ -155,6 +155,8 @@ Rules:
 6. If the query is conversational or clearly unrelated to the schema (e.g., "what is the capital of France"), return an empty string.
 7. WHEN FILTERING BY ENUM VALUES, ALWAYS use the type cast syntax: 'value'::enumtype
 8. Return only the SQL query, no explanations or markdown.
+9. The employees table has first_name and last_name, not full_name. To display an employee name, use CONCAT_WS(' ', e.first_name, e.last_name).
+10. Use only columns listed in the schema. Never invent aliases such as employees.full_name.
 
 User Query: {query}
 
@@ -244,6 +246,14 @@ def generate_sql_from_natural_language(query: str) -> str:
     
     if not sql:
         return ""
+
+    # Keep common employee-name shorthand compatible with the actual schema.
+    sql = re.sub(
+        r"\b([A-Za-z_]\w*)\.full_name\b",
+        r"CONCAT_WS(' ', \1.first_name, \1.last_name)",
+        sql,
+        flags=re.IGNORECASE,
+    )
 
     # Normalize enum values before sanitizing
     sql = normalize_enum_values(sql)
